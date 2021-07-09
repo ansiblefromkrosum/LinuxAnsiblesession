@@ -1,0 +1,496 @@
+YAML
+------
+1.scalar (single) - int,float,str,bool,null
+2.collection (multiple) - array,object(dict)
+
+array - index based --> [  ] 
+object -key:value  ---> {  }
+
+10 <-- int 
+/etc/passwd <-- str
+0.345 <-- float
+on <-- bool
+
+[10,/etc/passwd,0.345,on] <== array
+
+   (or)
+
+- 10
+- /etc/passwd
+- 0.345
+- on
+
+{"K1": 10,"K2": /etc/passwd,"K3": 0.345,"K4": on} <== dict
+-------------------------------------------------------------------------------------------------------------------
+ playbook - key: Value
+ 
+ {"name": "NAME OF THE PLAYBOOK"}
+
+ {"tasks": ["module1": {"att1": Value1,"att2": Value2},"module2": {"a1": V1,"a2": V2}]}
+  
+ tasks:
+ - module1: 
+       ... 
+       ...
+ - module1: 
+ 
+ tasks:
+ - module1: att1=value1,att2=value2
+
+    (or)
+
+ tasks:
+ - module1:
+      att1: value1
+      att2: value2
+
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: NAME OF THE HOSTS
+  tasks:
+  - name: NAME OF THE TASKS
+    module1:
+       att1: value
+       att2: value
+
+
+ {"port": 8080,"port": 5000} //Error 
+		 |
+		duplicate 
+ 
+ [{"port": 8080},{"port": 5000}]
+
+ - port: 8080
+   .....
+ - port: 5000
+
+====================================================================
+
+ targetsection - parent section 
+		 hosts
+		 starts with ---
+
+ task section -  core module section
+	        -> consist of set of plays
+		-> play ->execution
+
+----------------------------------------------------------------------
+
+
+[groupname1]
+ ...
+ ...
+
+[groupname2]
+ ..
+ ..
+[groupname3]
+ ..
+ ..
+[groupname4]
+nodeA
+nodeB
+nodeX
+[groupnae5]
+nodeC
+nodeZ
+------------------
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: all
+  (or)
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: *
+ 
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: group1:group2:group5 
+
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: all:!group2 ---> all the nodes - not group2 
+             --------
+		|__ not 
+---
+- name: NAME OF THE PLAYBOOK
+  hosts: group1:group2:nodex,nodey
+
+
+root@host /D1]# pwd
+/D1
+root@host /D1]# ansible-playbook p1.yml -i /root/project/myansible/
+
+root@host /D1]# ansible-playbook p1.yml
+			|
+			|___/etc/ansible/hosts
+					 ....
+-----------------------------------------------------------------------------------------------------------------------------
+ansible-playbook filename.yml
+
+ Green - No changes made to the hosts
+ Yellow - change have been made to the hosts
+ Red - Error (task is failed)
+ 
+
+ansible-playbook filename.yml -v{Enter} # result 
+ansible-playbook filename.yml -vv{Enter} # result and configuration
+ansible-playbook filename.yml -vvv{Enter} # about connection details
+
+
+===========================================================================================================================
+
+ansible <GroupName> -m yum -a "name=httpd state=installed"
+ansible <GroupName> -m service -a "name=httpd state=started"
+  
+write a playbook - install webserver and start the webservice 
+
+# refer p5.yml 
+
+write a playbook - create a group 
+write a playbook - create a user - add user existing group
+|
+write a playbook - create a group - play1 ; create a newuser - play2  
+		   copy a script file (t1.sh) to remote dir /root - mode -0775
+		   command module ->execute the script - use verbose mode 
+# refer p6.yml 
+================================================================================
+variable section 
+--------
+ |
+ variable - namespace - it's holding a value
+ 
+ vars: <== variable section starts with vars keyword 
+ 
+ variable section - holding the value - not execution section
+                    parent of tasks section
+
+ 
+ ---
+ - name: NAME OF THE PLAYBOOK
+   hosts: <remote hosts>
+   vars:
+   - name: VARIABLE SECTION
+     variablename:  Value
+
+ variablename - starts with alpha - not starts with digits 
+                not allows space or specialchars
+  
+  vars:
+  - name: testing variable
+    mypkg: apache2    ==========>  mypkg | apache2 | 0x1234 
+    myport: 8080      ==========>  myport| 8080    | 0x4444
+    lb: 1.45 ------------------->  lb    | 1.45    | 0x4233
+    status: True --------------->  status| True    | 0x4944
+
+    '{{named_variable}}'
+
+   vars: 
+   - name: testing variable
+     port: 8000 # Valid
+     $id: 501 # Invalid - there is a specialchar
+     f name: /etc/passwd # Invalid - there is space
+     5tr: 566 # Invalid - name stats with digits
+     
+    
+ ---
+ - name: installing webserver
+   hosts: webserver
+   tasks:
+   - name: PLAY-1
+     yum:
+       name: httpd
+       state: installed 
+
+
+ ---
+ - name: installing webserver
+   hosts: webserver
+   vars:
+   - name: variable decl
+     mypkg: httpd
+   tasks:
+   - name: PLAY-1
+     yum:
+       name: '{{mypkg}}'
+       state: installed 
+
+  
+
+
+
+ ---
+ - name: installing webserver
+   hosts: webserver
+   vars:
+   - name: variable decl
+     mypkg: apache2
+   tasks:
+   - name: PLAY-1
+     yum:
+       name: '{{mypkg}}'
+       state: installed 
+
+                    
+ special folder/ directory
+
+  group_vars/groupname.yml
+		|
+		---
+		myvar: 100
+  hosts_vars/node1.yml
+	     ---------
+               |
+              ---
+              myport: 567   
+
+  file:p.yml
+  -----------
+  ---
+  - name: <NAME OF THE PLAYBOOK>
+    hosts: group1
+    tasks:
+    - name: NAME OF THE TASK
+      command:  .... {{myport}} ....
+
+    
+ ==================================================================================================================================
+
+ ansible variable (or) system variable (or) builtin variable (or) setupvariable (or) predefined variable 
+ ........................................................................................................
+ 
+how to get list of ansible variables?
+
+ ansible <groupname> -m setup {enter}
+
+ ansible <groupname> -m setup -a "filter=ansible_dis*"
+
+ 
+
+...
+...
+    '{{ansible_NAME}}'  -->predefined ansible variable 
+
+    '{{myvariable}}' - check vars section - if there is no vars section -->refer -->host_vars (or) group_vars 
+                                                                                       |              |
+							      refer inventory file -->....         .....
+
+ vars:
+ - name: demo
+   ansible_var: 100 # this is user defined variable 
+
+
+how to supply runtime variable in ansible playbook?
+
+ansible p1.yml --extra-vars "var1=value,var2=value,var3=value..."
+
+-----------------------------------------------------------------------------------------------------------------------
+How to supply input execution time?
+
+vars_prompt:   #########   execution input 
+- name: <Variablename> # <interface to keyboard>  -<STDIN>
+  prompt: <User defined message> # display to monitor - STDOUT
+  private: yes|no 
+
+ user input is hidden by default but it can be visible by setting value -> private: no 
+
+ # refer: p16.yml & p17.yml 
+ #       
+=================================================================================================================================
+
+ file: p18.yml
+ -----------------
+ ---
+ - name: Collect LB report
+   hosts: all
+   vars_prompt:
+     - name: lbcount
+       prompt: Enter your count value?
+       private: no
+     - name: report
+       prompt: Enter your report value?
+       private: no
+
+   tasks:
+     - name: execute vmstats report
+       shell: vmstat '{{lbcount}}' '{{report}}' >vmreport.log
+     - name: fetch vmreport file to ctrlsystem
+       fetch:
+         src: /path/vmreport.log
+         dest: /var/log/
+  -----------------------------------------------------------------------
+
+  ansible-playbook p18.yml{enter}
+  Enter your count value?
+  2{Enter}<== user input - execution time - ansible is running state
+  Enter you report value?
+  3 {Enter} <=== user input - execution time - ansible is running state
+
+ ========================================================================================================================
+ crontab -e 
+
+ 30 22 *  *  *  ansible-playbook p18.yml
+ -----
+  
+10:30PM --crond ----ansible-playbook -->execute playbook
+					.................
+					
+Enter your count value?
+<waiting input from user>
+========================================================================================================================
+
+
+ file: p18.yml
+ -----------------
+ ---
+ - name: Collect LB report
+   hosts: all
+   tasks:
+     - name: execute vmstats report
+       shell: vmstat '{{lbcount}}' '{{report}}' >vmreport.log
+     - name: fetch vmreport file to ctrlsystem
+       fetch:
+         src: /path/vmreport.log
+         dest: /var/log/
+  ---------------------------------------
+  crontab -e 
+
+ 30 22 *  *  *  ansible-playbook p19.yml --extra-vars "lbcount=2 report=3" <=== Runtime input
+
+ crond --> ansible-playbook  ->execute script
+ OK.
+------------------------------------------------------------------------------------------------------------------------------------
+
+ vars_prompt:
+  - name: mypasswd
+    prompt: enter a password?
+    encrypt: <algorithmname>
+    
+ vars_prompt:
+  - name: mypasswd
+    prompt: enter a password?
+    encrypt: sha512
+    confirm: yes
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+register: variable <== user defined variable 
+debug: var=variable
+
+
+write a playbook
+
+vars:
+  declare a variable and initialize value
+
+  -play1 - display user defined value
+  -play2 - display command result - use command
+  -play3 - display free memory details - use ansiblevariable --> ansible localhost -m setup -a "filter=ansible_mem*" 
+
+# refer:p20.yml 
+--------------------------------------------------------------------------------------------------------------------------
+                    
+with_items: - looping statment - iterator 
+
+command: ...."{{item}}" - iterate looping statements
+with_items:
+ - python
+ - ansible
+ - ruby
+
+item - builtin variable - conditional ; looping statements ; fileHandling
+---------------------------------------------------------------------------------------------
+yum: name=<PackageName> state=installed <---
+ 
+yum: name={{item}} state=installed
+create a looping statements
+
+
+-------------------------------------------------------------------------------------------------------
+
+# find <searchPath> -name "<inputFile>"  - command (Linux)
+# 
+# ansible <group> -m find -a "path=<searchPath> patterns=<inputFile>" adhoc command
+
+# find <searchPath> -mtime -10 -name "*.log"  - command (Linux)
+
+# ansible <group> -m find -a "path=<searchPath> patterns=*.log age=-10d" adhoc command
+# 
+
+tasks:
+ - name: find list of log files accessed less than 10days
+   find:
+     paths: <searchPath>
+     age: -nd # 'n' days
+  |
+  |
+  register: output
+  |
+  |
+  debug: output
+ ---------------------------------------//
+
+  | 
+- debug: var={{item}} 
+  with_items: {{output}}   
+
+ 
+ d={"K1":"V1","K2":"V2","K3":["V3","Value3","v3"],"K4":{"key1":"V1"},"files":[{"K1":"Value1"}]
+                                                                             |   |
+									     |  --------------
+									with_items
+									- python
+									- perl
+									- ruby
+
+ d['files'][0]['K1'] ->Value1 <== this is python style not ansible
+
+ -debug: var=item.path
+ with_items: "{{output.files}}"
+
+ -------------------------------------------------------------------------------------------------------------------------------
+ -debug: var=item.attr
+ with_items: "{{item.path}}"
+ with_items: "{{output.files}}"
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+- debug: msg= '{{item}}'
+with_file:
+ - <filename>
+   
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+when - conditional statement keyword 
+ 
+ -> testing 
+ -> validation
+
+ when: Expression
+	|
+	operand <Operator> operand
+	---------------------------
+
+ relational operators
+ --------------------
+ == != < <= > >= 
+ 
+ ---------------------//single conditional statement
+
+
+ ansible_mem_freemem >100
+ ansible_cpu <1.45
+ ansible_hostname == 'host01'
+ =================================//Expression ->bool //validation (test)
+
+ to test more than one condition - we can use logical operators 
+ -------------------------------
+   |__ and  or not 
+ in Single conditional statement - test more than condition //use logical operators 
+
+ action   -------------------------------<------------------
+ when: namedVariable == Value <--- this condition is True -|
+
+
+ ================================================================================================================================

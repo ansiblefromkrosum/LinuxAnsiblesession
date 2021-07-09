@@ -1,0 +1,933 @@
+Linux commands
+  |
+ad-hoc
+  |
+playbook - filename.yml 
+
+ansible module - python files
+
+new -chat
+	 
+============================================================
+
+OS - system software - program - kernel - core part of an os 
+---
+ |--> interface btn user & H/W
+
+Kernel - File,Process
+------   =====--------
+File - Data - under the storage 
+Process - Data - under the CPU
+
+
+user layer:    commands / UI
+-------------    |
+kernel layer:    ..
+---------------  |
+H/W layer: CPU HD I/O
+
+
+Kernel layer
+-------------
+
+         systemcalls=FD; FD=0(STDIN);FD=1(STDOUT);FD=2(STDERR)
+	  |
+	FileSystem<---->PCB| IPC;SCHED;MM;Net |
+	  |
+	  DD
+	  |
+	  DC 
+ 
+root@host~]# command{enter}
+		|
+		systemcalls()=FD
+
+FD=3 to 2 power 32/64 - Valid Descriptors(Success)
+FD=-1 Failed 
+FD=0x133344 (memory)
+root@host~]# strace command{Enter}
+
+
+
+root@host~]# uptime
+
+root@host~]# ansible <remotehost> -m <module> -a args
+	
+root@host~]# ansible webserver -m command -a "uptime" # ad-hoc
+
+---
+- name: test loadbalance
+  tasks:
+   - name: ....
+     command: uptime 
+------------//
+
+
+shell - is interface btn user and kernel 
+shell is a parent of user process(commands)
+
+root@host~]# command <--- file,Process
+root@host~]# javac p1.java <=== file,Process
+root@host~]# ansible-playbook p1.yml <== file,Process
+root@host~]# mysql -uroot -p
+mysql> 
+mysql>
+mysql>quit;
+root@host~]# 
+-------------------------------------------------------------
+Linux File Types:-
+--------------------
+1. Regular File (or) ordinary file
+	|__ ASCII / Text file - user can able to understand  - text  (ex: user created files)
+        |__ ELF (object file) - user can't able to understand - text (ex: all commands )
+
+p1.java p1.yml ab.txt test.log p1.cpp <-- regular file ASCII/text
+
+date python3 ansible ansible-playbook a.out <--- ELF 
+
+2. directory file
+3. link (or) symlink (or) soft link 
+4. device file
+     |__ character - (ex:keyboard,terminal,printer) 
+     |__ block -(ex: storage )
+5. named pipe (or) fifo
+6. Socket 
+
+How to determine linux file type?
+
+file <filename>
+
+------------------------------------------------------------------------------------------
+			/
+			|
+	--------------------------------------
+	|	|	|	|	|	|
+	/bin	/etc   /home   /root   /dev    /mnt .... /boot
+
+
+/bin/ - commands 
+/usr/bin/ - installed commands
+/sbin/ - commands - root user only can access
+
+root user - like admin; non-root user
+----------              ----------------
+/root                        /home/<userA>
+			     /home/<userB>
+root@host~]# pwd
+/root
+
+Login: student
+passwd:
+
+student@host~]$ pwd
+/home/student
+
+/etc - configuration
+
+===========================================================================================
+Process
+---------                                          OL7                        OL7     OL[56]
+OFF ->Switchon PC ->POST ->MBR -> Bootloader(GRUB/GRUB2) -> Kernel ->Process(systemD/init) -PID:1
+User process		Vs		System process				|         
+------------				--------------				|
+by user                                  by systemD/init	       procecss(systemprocess)
+TTY:pts/portNumber			( ps -e |more) PID=1 systemD/init
+					
+parent is :working shell		  TTY:? 
+					  parent is systemD (or) init
+Start->R+-->Exit			 
+       ||				start ->R+ -->STOP-->R+	
+       STOP				session leader(SID)
+
+
+
+OFF ->Switchon PC ->POST ->MBR -> Bootloader(GRUB/GRUB2) -> Kernel ->Process(systemD/init) 
+									|
+									|
+									getty(Login:___ passwd:__) - ?
+									|
+								       shell (CLI)
+									|
+								     User I/O - userprocess
+
+P1(PID:101) P2(PID:102) P3(PID:103) P4(PID:104)  P5(PID:105)  P6(106) P7(107)  P8(108)  P9(109)  P10(110)
+
+process group
+
+P1 P2 P3    P4 P5    P6 P7    P8  P9  P10
+--------    -----    -----    -----------
+PGID:101    PGID:104  PGID:106   PGID:108
+
+session - collection of process group IDs
+-------
+P1 P4 P6 P8
+------------
+SID:101
+
+PID == PGID == SID 
+
+root@host~]# ssh <remotehost>{Enter}
+             ----------------------------//by user - user process - parent is working shell
+
+sshd - active (R+)
+-------------------//by systemD(or)init - system process 
+
+root@host~]# systemctl status sshd.service (or) systemctl status sshd{Enter}  // OL7
+                       ------                             ------
+				(or)
+root@host~]# service sshd status/start/restart //OL[56]
+
+=====================================================================================================================
+ Linux commandline structure
+-------------------------------
+1. command only style - (ex: whoami date ls ps etc.,) 
+
+
+2. command args style - (ex: date +%D; ls -l; ls -l <filename>)
+
+ls # command only
+
+ls -l # command with argument
+
+echo 
+echo "Hello ansible play book"
+echo  Hello ansible play book
+
+3. command with command style
+   ------       =======
+command `command` (or) command $(command)
+
+echo "Today date +%D"
+Today date +%D
+
+echo "Today `date +%D`"
+Today 07/05/2021
+
+whatis <command> 
+man <command>
+
+================================================================================================================
+Tasks
+---------
+Q1. display your login name ,hostname 
+                 (whoami)     (hostname)
+Q2. display with your customized message to monitor
+	
+	-> my host name is: host01 
+        -> my login name is:student 
+	-> my current working directory is:/home/student  (pwd)
+	-> kernel version:2.6.434  (uname -r)
+
+=======================================================================================================
+
+in linux commandline
+
+' ' <== single quote(enable specialchar)
+
+" " <== General arguments
+
+` ` <== backquote (command)
+
+~
+`<--- this is backquote
+
+======================================================================================================
+File manipulation
+---------------------------
+|__create a new FILE
+|__copy/rename/delete
+|__ file attribute details
+|___file permission
+|__backup - tar;gzip
+...
+
+create a new FILE
+
+1. editor (vim ,nano)
+2. redirection  >  >> 
+
+
+vi <filename>{Enter}
+--------------------------
+
+COMMAND mode  - save ; insert a line;copy;paste;delete
+--------------------------
+
+press 'i' (or) insert 
+ |
+input mode (or) insert mode 
+
+type - your text
+ |
+press ESC 
+:w (write)
+press 'i' - insert mode 
+...
+...
+press ESC
+:w 
+
+save and exit
+:wq (save and exit)
+
+in side vi editor
+---------------------
+copy the line --> (esc then you type yy)  yy
+
+copy 3lines --> esc 3yy -> 3lines are copied 
+
+copy 5lines ---> esc 5yy -> 5lines are copied 
+
+copy word -> yw (word copy)
+
+p(paste)
+
+delete the line --> dd 
+
+3dd - 3 lines are deleted 
+
+dw (word delete)
+
+3dw( 3 words are deleted)
+
+delete single char - x 
+
+create a newline in below - small oh (o) 
+create a newline in above - upper oh (O)
+
+:set nu - set the linenumber
+:set nonu - unset the linenumber 
+
+file <filename>
+--------------------------------------------------------
+
+filepath
+-----------
+ |__ absolute path ---> /subdir/subdir/subdir/filename
+ |
+ |___ relative path --> ./filename   ./sub/sub/filename  ../filename
+
+                        
+file copy
+-----------
+cp oldfile newfile
+	     | -> must be new ; if newfile already exists - overwrite
+
+cp /var/log/result.log . # copyremote file to local dir(or) current directory 
+
+file rename
+--------------
+mv old new  = rename action
+
+mv old <folder/directory = cur and paste 
+
+rm <filename> - delete a reg.file
+
+rmdir <directoryName> - delete a directory file
+
+rm -r <directoryName>
+
+wc <filename>
+
+lines words chars <filename>
+
+wc -l <filename>
+wc -w <filename>
+wc -c <filename>
+----------------------------------------------------------------------------------------------------------
+file permission
+================
+read(r) write(w) execute(x)
+
+3 operation
+------------
+read   }    user 
+write  }
+execute -- kernel 
+
+
+cat filename 
+ls /directory
+cd /directory
+-----------------//read 
+
+vi filename
+mkdir directory
+-------------------//write
+
+File ( F )
+-----------
+  |--->by 3 users 
+
+1. user (or) owner (or) author - u
+2. group   - g
+3. others  - o
+
+[sales]		[prod]		[HR] <== group    cat /etc/group 
+arun		anu		leo
+vijay		theeb		bibu
+
+Login: arun
+password: 
+
+arun@hostname~]$ vi p1.txt{Enter}
+...
+:wq
+
+arun@hostname~]$ ls -l p1.txt {enter}
+
+-rw-rw-r-- 1 arun sales  ..... p1.txt
+ =========
+rw- = user
+rw- = group
+r-- = others
+
+
+1.symbolic 2.octal
+----------
+|
+chmod userdetails+ mode inputfile(s)
+		 - 
+
+user to assign execute permission 
+chmod u+x p1.txt
+
+group to assign execute permission
+chmod g+x p1.txt
+
+others to assign execute permission
+chmod o+x p1.txt
+
+user/group/others to assign permission
+ugo + x filename
+
+to remove existing permission
+ugo -x filename
+
+
+chmod ugo+x filename
+chmod a+x filename
+chmod +x filename
+----------------------//same 
+
+chmod a+rw filename
+
+chmod a-wx filename
+chmod go-wx filename
+
+---------------------------------------------------------
+4	2	1
+r	w	x
+1	1	1  = 7
+1	1	0  = 6
+1	0	1  = 5
+1	0	0  = 4
+0	0	0  = 0
+
+chmod 765 filename{Enter}
+      
+7 - user
+6 - group
+5 - others
+-rwxrw-r-x  
+
+-----------------------------------------------------------
+
+chmod 777 p2.txt
+-rwxrwxrwx .... p2.txt
+|
+|__fileType - reg.file
+
+drwxrwxr-x .... Demo
+|
+|__ directoryfile
+
+--------------------------------------------------------------------------------------
+Tasks
+------
+step 1 : create a newfile - test (vi test)
+step 2 : write a following commands
+display list of files from login directory
+display total no.of files from /etc directory - count (ls /etc|wc -l)
+display current process 
+display cpu loadbalance
+step 3: save and exit 
+step 4: test your existing file permission - ls -l filename
+step 5: assgin execute permssion to all user
+step 6: run a file
+...
+vi test{Enter}
+sleep 2
+=======================================================================================
+
+cat p1.txt ; wc p1.txt
+----------   -----------
+                    
+cat p1.txt |wc  # reading pipe output
+
+
+command1| command2 | command3 | command4 | .... |commandN
+						    |_Result
+
+filters
+--------
+grep 
+find
+sed
+awk
+
+
+grep - search the pattern from file (or) pipe
+
+grep option pattern inputfile(s)
+     ======
+
+-n matched pattern line number
+-i ignorecase 
+-l list the matched pattern filename
+-v not matching pattern
+
+===============================================================================================
+
+find - search a file (or) directory
+-----
+find <SearchPath> -name <inputfile/dir>
+----
+|__recursive result
+
+
+
+
+find command result | file manipulation command
+--------------------| ---------------------------
+
+find command result |xargs filename manipulationcommand
+
+find -name "*.csv" | xargs grep sales 
+
+find -name "*.csv" | xargs ls -l
+
+find -name "*.csv" -exec <filemanpulation commands> {} \;
+
+
+{arg1 arg2 arg3...argN}
+
+{arg1 \
+ arg2 \
+ arg3 \
+ arg4
+}
+
+
+===========================================================================================================
+
+gzip 
+gunzip 
+
+
+tar command
+------------
+tar -cvf <filename> list of files
+
+
+-create -cvf
+-list -tvf
+-extract  -xvf
+
+tar -cvf file filename.tar list of files
+tar -tvf file filename.tar
+tar -xvf file filename.tar
+
+=========================================================================================
+
+ grep - search the pattern
+ |
+ grep -option pattern inputfile
+
+ sed - search;substitute
+ ----  ------ ==========
+
+ pattern
+ ---------
+ 1.Line Number(or) address
+ 2.Text (or) string (like a grep)
+
+ Linenumber - n 
+
+ print -> 2nd line content 
+ ----     --------
+ print -> 5th line content
+ -----    ---
+
+ sed -n 'LineNumberAction' inputFile
+
+ sed -n 'n,mp' inputFile
+
+ sed -n '/pattern/Action' inputFile  - like grep command 
+
+ sed 's/old/new/' inputfile - substitute 
+
+ sed 's/old//' inputfile - like delete operation
+ 
+ awk
+ ---
+  |--> formatting result
+
+  recap grep,sed syntax
+  ----------------------
+
+  grep - search - print matched pattern lines
+         ------   =====(action/operation)
+
+  sed  - search & substitute 
+         -------------------(action)
+
+  awk - search & format the result
+        ----------------------------
+ 
+
+  Syntax:-
+  --------
+  awk option '/pattern/{action}' inputfile 
+
+  awk internal operation
+  ----------------------
+
+  step 1: awk read the data from <input> File (or) PIPE - line by line (record buffer)
+  step 2: split each record(line) into multiple fields
+  step 3: search the pattern
+  step 4: action - {print}
+
+
+  file:IP.txt
+  ------------
+  101:root:bin:bash
+  102:user:bin:ksh
+  103:leo:bin:bash
+ 
+  awk -option '/bash/{print}' IP.txt - STEP 1
+
+   101 root bin bash 
+   -------------------
+   102 user bin ksh
+  ---------------------
+   103 leo  bin bash
+  --------------------
+
+  
+
+  awk -F: '/bash/{print}' IP.txt - STEP 2
+
+   101 | root| bin| bash 
+   ----|-----|----|------
+   102 |user |bin | ksh
+  -----|-----|----|-------
+   103 |leo  |bin | bash
+  -----------------------
+                         
+   101 root bin bash
+   103 leo  bin bash       Result - default output field sep is space
+ 
+  ----------------------------------------------------------------------------
+   awk variables  $1 $2 $3... $NF - field variables
+                    
+ NR  $1    $2    $3   $4(or) $NF
+ 1  101 | root| bin| bash 
+    ----|-----|----|------
+ 2  102 |user |bin | ksh
+   -----|-----|----|-------
+ 3  103 |leo  |bin | bash
+   -----------------------
+   |<------- $0 --------->|  
+
+               
+  
+  awk -F: '/bash/{print NR,$1,$NF}' IP.txt
+  
+ 1 101  bash
+ 3 103  bash 
+ -------------------------------------------------------------------------------
+ OFS=""  
+
+
+  awk -F: '{print NR,$1,$NF}' IP.txt
+
+  1 101 bash
+  2 102 ksh
+  3 103 bash
+ -------------------------------------------------------------------------------
+
+
+  awk -F: '{OFS=",";print NR,$1,$NF}' IP.txt
+
+  1,101,bash
+  2,102,ksh
+  3,103,bash
+
+  awk -F: '{OFS="\t";print NR,$1,$NF}' IP.txt
+
+  1  101   bash
+  2  102   ksh
+  3  103   bash
+---------------------------------------------------------------------------------
+ Tasks
+
+ display process NAME,PID  - ps;awk
+
+ display 2nd line to 5th line contents from /etc/passwd file - sed 
+
+ search bash keyword from /etc/passwd - filter 1st column,5th column - awk <or> grep|awk 
+
+ 
+ display process NAME,PID  - ps;awk
+ ps| awk '{OFS="\t";print $NF,$1}'
+ 
+ 
+
+ display 2nd line to 5th line contents from /etc/passwd file - sed 
+ sed -n '2,5p' /etc/passwd (or)  cat -n /etc/passwd|sed '2,5p'
+
+ search bash keyword from /etc/passwd - filter 1st column,5th column - awk <or> grep|awk
+ awk -F: '/bash/{print $1,$5}' /etc/passwd
+    (or)
+ grep bash /etc/passwd |awk -F: '{print $1,$5}'
+
+================================================================================================================================
+redirection 
+-----------
+
+ command --- STDOUT(Result) FD=1
+    |
+   STDERR(Failed) FD=2
+
+ date
+...... (STDOUT) 
+
+ dateee
+ error command not found 
+ .........................(STDERR)
+
+  > create/write      >> append 
+
+ 
+  file: /dev/null ;   file: /dev/zero
+  -------------------------------------
+    |                         |
+   clean up                   increase file storage
+   not holding data		    data file
+
+
+  command --->Valid result --> $? ==>0
+     |
+   InValid Result --> $? ==>Non-Zero 
+
+   which uptime - test which path the input command is located ?
+  /bin/uptime (or) /usr/bin/uptime
+    
+   echo $?  -->0 (Success); echo $? -->1(Failed)
+    
+   uptime >/dev/null 2>&1 
+   echo $? 
+   0 - Success - uptime is executed successfully 
+   1 - failed - uptime command execution is failed
+
+   --------------------------------------------------------------------------------------------------------------------
+     /dev/xvdb1   --- /D1 (10GB)
+
+    root 
+     |
+ -------------
+ |  |     ..  |
+ u1 u2   .... u10
+
+   u1 ->1GB
+   u2 ->500MB
+   u3 ->1.5GB
+   
+
+  su - u2
+u2@host~]$ cd /D1
+u2@host~]$ dd if=/dev/zero of=r1 bs=512 count=100
+ 
+  500kb 
+  ...
+  ....disk quota exceed error 
+ 
+ =================================================================================================================================
+ process 
+ --------
+  ps
+  ps -e (or) ps -A   => list of all the process
+
+  search particular process --> ps -e|grep <processName>  (or) ps -e|grep <PID>
+  
+  ps -a (active user process)
+
+  ps -f (PPID,STIME)
+
+  ps -l (like ls -l) - long list 
+  
+  ps -el
+  ps -elf 
+
+  pstree
+
+  pmap <PID> 
+  
+ top
+ htop
+ iotop
+ monitor
+ -------------//monitor system status
+
+
+  command &
+
+  fg % eventID
+-----------------------------------------------------------------------------------------------------------------------------------
+
+network
+packageinstall
+h/w 
+-----------------------------------------------------------------------------------------------------------------------------------
+
+Network
+--------
+   -> configuration files
+
+    /etc/sysconfig/network-scripts/ifcf-<NIC>
+    ------------------------------ ==========
+    eth0
+    eth1
+    lo
+
+    /etc/sysconfig/network-scripts/ifcfg-eth0{Enter}
+
+   systemctl restart network.service 
+   systemctl start network.service 
+
+   /etc/hosts  - IP<-->hostname <----> alias 
+
+   /etc/resolv.conf - DNS - NetworkManager daemon 
+
+   vi /etc/sysconfig/network-scripts/ifcfg-eth0{Enter}
+
+
+
+  DNS3='134.42.452.444'
+  :wq
+  systemctl restart NetworkManager.service 
+  
+  cat /etc/resolv.conf 
+  1.2.4.5
+  3.4.5.6
+  134.42.452.444
+  ---------------------------------------------
+
+  /etc/hostname - hostname
+  -------------------------------------------------------------------
+
+  root@host~]# hostname
+
+  root@host~]# ip addr
+
+  root@host~]# cat /etc/hosts
+
+  root@host~]# ping <RemoteHOST>
+  ..
+  ..
+  ..
+  root@host~]# ssh <RemoteHost>{Enter}
+  
+  
+  --------------------------------------------------------------------------------------------------------------------
+  RHL                                             DEB
+  ---						  ----
+  rpm - file
+					
+  yum install <Package>				apt-get install <Package>
+  yum remove <package>				apt-get remove <package>
+  yum update <package>
+  ---              
+ 
+ --------------------------------------------------------------------------------------------------------------------
+ disk usage 
+ ----------
+ df - display mounted filesystem details
+ df -T filesystem type
+ df -h(human view)
+ du 
+ du .
+ du -s 
+ ---------------------------------------------------------------------------------------------------------------
+ H/w information
+ ----------------
+ dmesg
+ free - memory
+ lsblk - list info about block devices
+ lshw - list info about h/w configuration
+ lsusb -t
+ dmidecode 
+ hdparam -i /dev/<diskpartition>
+ 
+ cat /sys/fs
+---------------------------------------------------------------------------------------------------------------------
+ 
+
+
+---------------------------------
+    systemcall
+	|					  
+   [ File System ]  VFS	<--->PCB 
+     |
+     DD
+     |
+     DC(asm)
+     |
+ ---------------------------
+ CPU RAM HD  NIC I/O <== physical devices
+
+
+  /proc
+  /sys           /     /mnt          /D1 <== directory - user layer
+     |           |       |           |
+ [  proc        xfs    iso9660       nfs       ] <== FileSystem - kernel layer
+     |           |       |           |
+     |           |       |           |
+  CPU /MEM       HD      CDROM       NIC  <== H/W
+
+
+  ls -ld /etc  
+  ls -ld  /
+  ls -ld  /dev
+  ls -ld /root
+  -----------------//size ->X
+
+
+  ls -ld /proc  ->Size is 0 (zero)
+  ls -ld /sys   ->Size is 0 (zero) # 2.6 updated kernel 
+ 
+ cat /proc/filesystems
+ ===============================================================================================================
+ 
+
+  /dev/sdb - 10GB 
+
+  using partition tools -> /dev/sdb1  /dev/sdb2 /dev/sdb3 
+			   --------   --------  -----------
+				|
+			  mkfs.ext4 /dev/sdb1  mkfs.xfs /dev/sdb2  mkfs.xfs /dev/sdb3
+				
+			  mkdir /d1 /d2 /d3
+
+			  mount /dev/sdb1 /d1 
+			  mount /dev/sdb2 /d2
+			  mount /dev/sdb3 /d3
+
+ cd /d1 {Enter}
+
+ vi p1.txt{Enter}
+  ...
+  ...
+ :wq
+ ================================================================================================================================

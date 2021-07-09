@@ -1,0 +1,517 @@
+
+Template section
+
+template
+
+recap copy module
+-----------------
+ sourcefile --> targetfile
+    |
+  data1
+  data2
+  data3
+  -------------->.....
+       |
+    data2->updatedData
+           ...........
+		//not copied 
+
+ while copying time -any changes happened on the source file - changed (dynmically changed data ) won't copied to target file.
+                     .............................................................................
+						|
+					     template module
+
+ jinja2  - template enginee
+
+ frame work 
+ ------------
+  HTML + jinja2 template code 
+         ------------------------//dynamic content 
+             |
+         filename.j2 
+
+   {{variable}} 
+
+---
+- hosts: webserver
+  vars:
+  - name: user defined variable
+    myname: root
+  tasks:
+  - name: Ansible Template Engine example
+    template:					Vs	copy:
+      src: test.j2 					  src: inputfile
+      dest: /tmp/testfile				  dest: targetfile
+
+
+ file:test.j2						file: inputfile
+ 
+ Hello {{myname}}					Hello {{myname}}
+--------------------------				--------------------
+cat /tmp/testfile					cat targetfile
+Hello root						Hello {{myname}}
+
+
+
+template looping syntax
+------------------------
+ {% for UDV in collection %}
+    code block
+ {% endfor %}
+
+ UDV- user defined variable 
+
+ for , in, endfor - keywords 
+
+
+-----------------------------------------------------------------------------------
+
+ vars:
+ - ip: ['10.20.30.40', '',.....] 
+
+
+asynchronous mode
+---------------------
+ play1
+ play2
+ play3
+
+m/c1
+----
+  |--->to execute play1 -- complete then execute play2 --- complete then execute play3 
+m/c2
+  | -> to execute play1 --complete then execute play2 --- complete then execute play3 
+ 
+
+ m/c1 | m/c2 | m/c3  
+
+ play1 | play2 | play3 | .... |playn
+ ------------------------------------//run parallel 
+
+ async - keyword 
+ poll - keyword - auto enabled - whenever async - it has a default value 10 secs  
+ async: <secs to timeout the task>
+ poll: <secs to poll for the status of the task> # interval in secs 
+
+hosts: <webserver>
+           
+ 
+ tasks:
+ - name: update the system packages 
+   command: yum update -y
+   asyc: 120 # the total time allowd to complete the package update task
+   poll: 15 # polling interval 
+   register: output
+ - debug: ...
+ - name: play2
+   user: name=userA state=present
+
+
+
+================================================================================================================================
+ vault
+ ----
+  encrypted files
+  
+  cat ab.yml
+  ----------
+  .... <-- anyone can read
+  -------
+
+ ansible-vault encrypt ab.yml {Enter}
+
+ new vault password:_____
+ confirm new vault password:_____
+  
+ cat ab.yml{enter}
+ ----------------
+ encrypted format
+ -----------------
+ 
+ ansible-playbook ab.yml 
+ Error 
+ 
+ ansible-vault edit ab.yml{enter}
+ vault password: _____
+  
+ # viewing an encrypted playbook file 
+ ansible-vault view ab.yml{Enter}
+ Enter a password:
+ 
+
+ # change the password
+ ansible-vault rekey ab.yml{Enter}
+ Vault password:<oldpassword>{Enter}
+ Enter vault password:
+ Confirm New Vault Password: 
+
+
+
+
+ ansible-playbook ab.yml --ask-vault-pass{Enter}
+
+ to decrypt
+ 
+ ansible-vault decrypt ab.yml {Enter}
+ ...
+ cat ab.yml{Enter}
+  .... <-- we can read 
+-------------------------------------------------------------------------------------------------------------------------------
+
+---
+- name: 
+
+  tasks:
+  - name: play1
+    user:
+      name: 
+      home: 
+  - name: play2 -SS0
+    copy:
+      content: "..................."
+      dest: /home/userNAME/filename
+  
+  ansible-vault encrypt_string 'this is info about role and NDA docs' --name 'playname' 
+  Enter a password:
+   ....
+   .....
+
+ copy the above encrypted 
+
+
+---
+- name:  
+ 
+  vars: 
+   myinfo: !valut |
+            <paste> copy the above encrypted 
+
+  tasks:
+  - name: play1
+    user:
+      name: 
+      home: 
+  - name: play2 -SS0
+    copy:
+      content: "{{myinfo}}"
+      dest: /home/userNAME/filename
+  
+   
+ ansible-play filename.yml --ask-vault-pass
+ 
+ 
+------------------------------------------------------------------------------------------------------------------------------------
+
+Reusing existing code(play)
+============================
+
+file: a.yml
+-------------
+- name: installed httpd
+  yum: name=httpd state=installed 
+
+
+file:p1.yml
+-------------
+---
+- hosts: webserver
+  tasks:
+  - name: include external playfile to localfile
+    command: echo "Hello"
+  - include: a.yml
+  - include: b.yml
+  - include: c.yml
+
+ include - include particular play - not playbook
+
+ ---
+ - hosts:
+ tasks:
+ - module: ...
+-----------------//playbook
+
+ - name: play
+   module: ....
+  ----------------//play only 
+
+
+
+-----------------------------------------
+
+file: sample.yml
+--------------------
+---
+- hosts: demo
+  tasks:
+   - name: sampleplaybook
+     shell: echo "one"
+ --------------------------
+
+file: p1.yml
+--------------
+
+- import_playbook: <ansiblefile>
+    - name: <play2>
+      command: echo "Two"
+
+include Vs import_playbook
+------------------------------------------------------------------------------------------------------------
+
+
+tasks:
+- name: NAME OF A PLAY
+  module: module attributes
+- name: NAME OF A PLAY
+  module: module attributes
+  name: NAME OF A PLAY  <=== Error - key duplicating
+  module: module attributes 
+
+tasks: [{"name": NAME OF A PLAY1},{"name": NAME OF A PLAY2},{"name": NAME OF A PLAY3}] - OK
+
+tasks: [{"name": NAME OF A PLAY1},{"name": NAME OF A PLAY2},{"name": NAME OF A PLAY3,"name":''}]
+                                                                |----------------------| -->Error - duplicate entry
+
+tasks:
+- name: NAME OF A PLAY1
+  module: module attributes
+- name: NAME OF A PLAY2
+  module: module attributes
+- name: NAME OF A PLAY3  
+  module: module attributes 
+
+ [name,name,name,name]
+       
+      (or)
+ - name
+ - name 
+ - name
+ - name
+==================================================================================================
+
+ Scalar - OK  ==> key: ScalarValue 
+
+ name: Name of a play/playbook
+ 
+ Collection -> Array/list  ->index  [ ] (or)  - 
+					      -
+	       dict /object 
+               ---------------//key:value
+
+
+  - (or) [ ] //array or list 
+
+   key: Value (or) Key=Value //key:value pair style 
+
+
+ d={"class": "oracle","class": "mysql"} //Error 
+ |
+ d={"tasks": [{"class": "oracle"},{"class": "mysql"}]} //Ok
+		
+  tasks[0]['class'] <== python style 
+  tasks[1]['class'] <== python style 
+  
+  tasks:
+  - class: oracle
+  - class: mysql 
+     --------------//ansible style 
+  
+
+ d={"tasks": [{"class": "oracle"},{"class": "mysql","class": "sql"}]} //Error 
+					|--------------|
+  tasks: 
+  - class: oracle
+  - class: mysql
+    class: sql <-- Error 
+ ------------------------------------------------------------------------------------------------------------------------------------
+
+ Roles
+ -----
+  -> directory structure 
+  
+  Actor
+   |---> rule 1
+   |---> rule 2 
+
+  m/c 
+   |-->dev 
+   |-->QA
+
+ variable  ---> variable/
+ tasks  -------> tasks/
+ handler ---------> handler/
+
+ default/
+ meta/ 
+ ----->external plugin
+
+
+ roles/<rolename>
+       task/main.yml
+       vars/main.yml
+       handler/main.yml 
+
+file: master.yml
+-----------------
+ ---
+ - hosts: <webserver>
+   roles:
+   - dev
+   - prod
+
+ ansible-playbook master.yml
+ 
+
+
+
+ file:p1.yml
+ -------------
+ ---
+ - hosts: webserver
+   tasks:
+   - name: install http server
+     yum: name=httpd state=latest
+     when: ansible_os_family == 'RedHat'
+     ignore_errors: yes
+   - name: install apache2 server
+     apt: name=apache2 state=latest
+     when: ansible_os_family == 'Debian'
+     ignore_errors: yes
+-------------------------------------------------------------------
+ file:p2.yml
+ -------------
+ ---
+ - hosts: webserver
+   vars:
+   - name: variable decl
+       redhat_web: httpd
+       debian_web: apache2
+   tasks:
+   - name: install http server
+     yum: name="{{redhat_web}}" state=latest
+     when: ansible_os_family == 'RedHat'
+     ignore_errors: yes
+   - name: install apache2 server
+     apt: name="{{debian_web}}" state=latest
+     when: ansible_os_family == 'Debian'
+     ignore_errors: yes
+
+--------------------------------
+file: p3.yml
+-------------
+ ---
+ - hosts: webserver
+   vars:
+   - name: variable decl
+       redhat_web: httpd
+       debian_web: apache2
+   tasks:
+   - name: install http server
+     yum: name="{{redhat_web}}" state=latest
+     when: ansible_os_family == 'RedHat'
+     ignore_errors: yes
+     notify: handler for qa
+   - name: install apache2 server
+     apt: name="{{debian_web}}" state=latest
+     when: ansible_os_family == 'Debian'
+     ignore_errors: yes
+     notify: handler for qa
+   handlers:
+   - name: play-1
+     service: name="{{redhat_web}}" state=started
+     when: ansible_os_family == "RedHat"
+     listen: handler for qa
+   - name: play-2
+     service: name="{{debian_web}}" state=started
+     when: ansible_os_family == "Debian"
+     listen: handler for qa
+
+
+ -------------------------------------------
+
+ master.yml
+
+ ---
+ - hosts: webserver
+   roles:
+   - dev
+   - qa
+
+  (or)
+ ---
+ - hosts: webserver
+   roles:
+   - {role: dev,when: ansible_os_family == "RedHat"} 
+   - {role: qa,when: ansible_os_family == "Debian"}
+ --------------------------------------------------------------------------------
+
+ master.yml
+ -----------
+ ---
+ - hosts: webserver
+   pre_tasks:
+   - name: pretask
+     command: echo Welcome
+   roles:
+   - {role: dev,when: ansible_os_family == "RedHat"} 
+   - {role: qa,when: ansible_os_family == "Debian"}
+   post_tasks:
+   - name: posttaks
+     command: echo "Thank you"
+
+=============================================================================================================
+
+ ansible galaxy - is a community
+ 
+ https://galaxy.ansible.com 
+
+----------------------------------------------------------------------------------------------------------
+
+file: filename.py <== python source file 
+----- -----------
+     class cname(parentclass): # inheritance
+	def __init__(self):
+		...
+	def method1(self):
+		...
+     def function1():
+		...
+		....
+ ---------------------------
+  
+ ansible ==> filename.py 
+   |--------> ...........//module 
+
+  ansible-doc -l {Enter}
+  
+  plugin - code - function,methods (or)variable 
+   
+  yum: name="{{item}}" state=latest  
+  with_items: <---- plugins
+	- irb
+	- python3
+	- git  
+
+  yum <-- module 
+  
+
+ # from module import member
+
+ from ansible.plugins.action import ActionBase
+ 
+ class ActioModule(ActionBase):
+	...
+	...  
+ --------------------------------------------------------------------------------------------------------------------
+ winrm 
+ powershell (psh)
+  |
+ cmdlets -- object 
+ powershell commands
+  
+get-commands
+win_commands
+
+win_find 
+win_hostname
+win_service 
+-----------------------------------------------------------------------------------------------------------------------

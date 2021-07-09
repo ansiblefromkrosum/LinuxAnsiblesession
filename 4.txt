@@ -1,0 +1,360 @@
+
+condition -> validation (or) Testing
+ |
+ module: action ----(2)
+ when: <condition> ---(1)
+
+ == != < <= > >=   Single Test
+
+
+yum: name=httpd state=installed  (2)
+when: ansible_os_family == "RedHat" --(1)
+
+test more than one condition - we can use logical operators
+-------------------------------------------------------------
+ and 
+  or
+  not
+  ------//keywords 
+
+ and
+------
+condition1	condition2	Result
+True		True		True
+True		False		False
+False		True		False
+False		False		False 
+
+ansible_os_family == 'RedHat' and ansible_distribution_version > 7.2
+----------------------------      -----------------------------------
+
+ or
+------
+condition1	condition2	Result
+True		True		True
+True		False		True
+False		True		True
+False		False		False 
+
+shell: df -Th
+when: ansible_os_family == 'RedHat' or ansible_os_family == 'Debian' 
+
+apt: name=apache2 state=installed 
+when: ansible_os_family == 'Debian' and ansible_pkg_mgr == 'apt'
+
+----------------------------------------------------------------------------------------------------
+membership operation
+------------------------
+
+<pattern> in Collection ->bool  ==> conditional statements
+
+"bash" in ['ash','bash','ksh','tcsh','csh']
+  |
+ pattern is existing or not
+		|        |__False  - there no module action(execution)
+		True
+ 
+when: (ansible_distribution in ['RedHat','Centos','Debian'])
+                                          
+
+when: (ansible_distribution in ['RedHat','Centos','Debian']) and ansible_distribution_version >7.2
+--------------------------------------------------------------------------------------------------------
+
+Debian or Fedora //anyone condition is matched   -> apt 
+
+RedHat and package manager yum //both condition is True -> install httpd 
+
+tasks:
+ - name: play1
+   ...
+ - name: play2
+   ...
+ - name: play3
+   failed
+ - name: play4
+   ...
+ - name: play5
+   ...
+ 
+ ignore_errors: yes
+
+=========================================================================================
+wait_for
+
+---
+- hosts: <group>
+  tasks:
+  - name: <taskName>
+    wait_for:
+        ....
+        ....
+  - name: PLAY2
+      ....
+      ....
+  - name: PLAY3
+--------------------------------------------
+
+ run_once 
+
+ delegate_to  <host>
+
+
+
+ - hosts: all - 10hosts 
+   tasks:
+   - name: play1
+     command: echo "Hello"
+   - name: play2
+     command: echo "Welcome"
+   
+
+ - hosts: all - 10hosts 
+   tasks:
+   - name: play1
+     command: echo "Hello"
+     run_once: true
+   - name: play2
+     command: echo "Welcome"
+
+ 
+        
+ - hosts: all - 10hosts 
+   tasks:
+   - name: play1
+     command: echo "Hello"
+     delete_to: node1
+     run_once: true
+   - name: play2
+     command: echo "Welcome"
+
+                                                                    
+------------------------------------------------------------------------------------------------------------------
+Target section 
+
+variable section 
+
+tasks section - module - execution  - primary task
+ |
+handler section - module - execution - secondary task - depends on primary 
+                   
+--------------------------------------------------------------------------------------------------------------------
+tasks:
+- name: play-1
+  yum: name=httpd state=latest 
+- name: play-2
+  service: name=httpd state=started 
+ 
+
+tasks:
+- name: play-1
+  group: name=sales state=present
+- name: play-2  
+  user: name=userA group=sales 
+  
+tasks:
+- name: play-1
+  yum: name=httpd state=latest
+  notify: <handlerName>
+
+handlers:
+- name: <handlerName>
+  service: name=httpd state=started 
+ 
+---------
+
+
+tasks:
+- name: play-1
+  yum: name=httpd state=latest
+  notify: name1
+
+handlers:
+- name: name1
+  service: name=httpd state=started 
+
+------------
+tasks:
+- name: play-1
+  yum: name=httpd state=latest
+  notify: name1
+
+- name: play-2
+  yum: name=httpd state=latest
+  notify: name1
+handlers:
+- name: name1
+  service: name=httpd state=started 
+ 
+Handlers are executed at the end of the play,once all tasks are finished.
+
+
+tasks:
+- name: play-1
+  yum: name=httpd state=latest
+  notify: name1
+
+handlers:
+- name: name1
+  service: name=httpd state=started 
+- name: name1    
+  service: name=apache2 state=started  
+
+ 
+
+----------
+vi test.sh
+date
+hostname
+:wq
+
+write a playbook
+
+use copy module - copy test.sh to target system under /root - assign permission 0777
+    |
+   notify: <HandlerName>  Calling Handler
+ 
+Handler section - use shell module -> execute /root/test.sh script
+                        
+
+# refer :p47.yml and p48.yml
+
+-------------------------------------------------------------------------------------------
+ 
+copy: src=p1.sh dest=/tmp <---- single file copy
+
+copy list of .sh files  --> /tmp <-- list of files(or) more than one file
+ 
+# How to filter list of files using wildcards?
+#
+# with_fileglob:
+#   - "./*.sh" 
+
+# notify: CallHandler
+#          |
+#        shell module 
+#       with_fileglob:
+#        - "./*.sh" 
+-------------------------------------------------------------------------------------------------
+
+write a play book
+
+Q1. display cpu loadbalance - uptime
+
+   shell (or) command
+   register
+   debug
+     
+    |
+Q2. write cpu loadbalance result to external file (LB.log)
+    copy:  content={{   }}   dest=...
+
+Q3. find list of directory type files from /root path 
+
+    -m find -a "paths='/root' file_type=directory
+
+Q4. variable section
+    fname: /etc/passwd
+    shell (or) command -> ls -l <filename> display file details
+    
+Q5. variable_prompt -> use stat module -> test input file is exists 
+    
+
+Q6. validate: user_id -> root or not
+			  |
+			 display mounted file system status
+			  |
+			Handler section - demonstrate handler code
+ -------------------------------------------------------------------------------------------------------------
+
+ 
+tasks:
+- name: play1
+  command:  command1
+  notify: callingHandler  ##### notified 
+- name: play2
+  command:  command2
+  notfiy: callingHandler  ####  notified 
+handlers:
+- name: callingHandler
+  command: Handler section will execute                           
+
+
+tasks:
+- name: play1
+  command:  command1
+  notify: callingHandler  ##### notified 
+
+handlers:
+- name: callingHandler
+  command: Handler section will execute                           
+- name: callingHandler
+  command: Handler section will execute                           
+-----------------------------------------//any one handler play only run
+
+
+
+tasks:
+- name: play1
+  command:  command1
+  notify: callingHandler  ##### notified 
+
+handlers:
+- name: PLAY-1
+  command: Handler section will execute                           
+  listen: callingHandler # global namespace 
+- name: PLAY-2
+  command: Handler section will execute                           
+  listen: callingHandler  # global namespace
+- name: PLAY-3
+  command: Handler section
+  listen: callingHandler
+----------------------------------------------//Here(Handler section) all the 3 plays will execute
+
+============================================================================================================================
+blocks
+-------
+ -> group of tasks 
+ -> block
+ -> rescue
+ -> always 
+tasks:
+- name: NAME OF THE TASK
+  block:
+  - name: task1
+
+  - name: task2
+  - name: task3
+    ...
+  - name: task4
+  rescue:
+  - debug : msg='this section is rescue section' # block section is failed 
+  finally:
+  - command: always running 
+
+---------------------------------------------------------------------------------------------------------------
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,417 @@
+
+CGI -application
+---
+  onlineregistration.com
+  ...
+  ...
+  (submit) --------------------webserver ----------serverscript ---------DB/FILE
+                                           req
+					---------
+					   res         
+
+User Level: html    webserver   db 
+---------------------------------------
+Kernel:
+--------------------------------------
+H/w
+
+config.management
+--------------------
+
+ [html-client]   [ webserver;python ]           [oracle - DB]
+ ---------------------------------------------------------------
+             [cgroup] - subsystem
+ 
+              Kernel 
+ ----------------------------------------------------------------
+
+ DevServer			BuildServer		DBserver		prodserver
+ ---------			------------		----------		-------------
+ git                              maven                    DB                    services          
+ jdk                              docker                   config                 osupdates
+ ide                                                                               backup
+
+Ansibe - config.management tool
+------
+    -> automation engine (configure ->define state ->action )
+
+  install webserver
+  configure webserver - client ; server ; ports ...
+  start a webserver
+  check the webservice status
+  test a sample code/page 
+
+    [ SYS1 ]   [ SYS2 ]  [ SYS3 ]  .... [SYS..N]
+
+ file:p1.sh
+ 
+ for var in SYS1 SYS2 SYS3 .. SYSN
+ do
+	ssh $var <<abc
+		yum -y install <Pack>
+		if [ $? -eq 0 ];then
+			cat >/etc/httpd/http.conf 
+				....
+		else
+				...
+		fi
+	abc
+done
+
+ 
+
+ for var in SYS1 SYS2 SYS3 .. SYSN
+ do
+	ssh $var <<abc
+		systemctl status httpd
+		if [ $? -ne 0 ];then
+			if [ `whoami` == "root" ];then
+				systemctl start httpd
+			else
+				echo "Sorry your not root"
+			fi
+		fi
+	abc
+done
+
+ yum: name=httpd state=installed
+ service: name=httpd state=started 
+
+
+
+
+ [ Ctrl System / Master ] -----------[ Node1 ] [ Node2 ] .. [Node1000]...[Node N]
+                             SSH         
+   
+ internal works
+   python
+   paramkio
+   multiprocessing                            
+
+ module - existing python file (python code) 
+ ansible --->pushing out scripts/programs called "Ansible Modules" to each node. ->execute the module //Action
+										   ( on remote node)
+
+ -----------------------------------------------------------------------------------------------------
+
+ STEP 1 : test the connection 
+ STEP 2 : inventory file
+ STEP 3 : playbook / adhoc (action)
+ 
+ STEP 4 : SSH // paramiko (python code) ----------------------------------------- // multiprocessing 
+ STEP 5 : push the module - each node m/c  ----> [ C1 ] [ C2 ] .. [Cn ]
+						  r1      r2   ..  rn
+						 ----------------------
+								|
+								| ------------------ // multiprocessing
+		-----------------------------------------------
+  STEP 6: Gathering info about client (or) node m/c  //Gathering facts
+
+
+  ctrlsystem
+   |
+  ansible <group>
+  ansible-playbook p1.yml 
+   |
+   |
+  internally ----> python shell
+			|---------------------------------ssh+multiprocessing-------- [ subshell(python) temp ] [subshell (python) ]
+	                                                                                   module->execute(newprocess)
+												 |
+												....
+												|
+				------------------------------------------------------------
+											[ exit ]
+
+  root@host~]# working shell - parent process
+   |
+  root@host~]# ansible ...... {enter}
+		|
+	bash(working shell) - parent
+	 |
+	ansible  - child - parent
+	 |
+	 |__python - child-2
+		|
+		|-------------------------------python
+						|
+						....
+	------------------------------------------------------
+                                                playbook action
+	          ---<-------------------------(JSON)
+
+ 
+ yum.py  yum.py  yum.py
+  |      |         |
+ C1      C2      C3
+
+
+
+
+
+
+        | inventory
+ root@host01~]# ssh host02
+
+ root@host02~]# ssh host03 
+ root@host03~]# mysql -u root -p 
+ ..
+ mysql >....
+ mysql > exit
+
+=================================================================================================================================
+
+
+ansible webserver -m ping {Enter}
+  |
+  |--> refer ansible.cfg file --->hosts(inventory)
+				    |
+				  [webserver] - check webserver group name/node name
+				    
+				    student  IP=  ssh_pass=
+					  |
+					  establish the connection btn ctrlnode and student
+					  ------------------------------------------------------//SSH
+					   |
+					  ansible will push the module(ping) to each client node
+										     ------------
+											| execute the module
+												|
+								--------------------------------
+								    JSON response result 
+
+
+ 
+ansible [inventoryGroup] -m <moduleName> -a <argument>
+|
+Testing
+--------
+ansible webserver -m ping {Enter}
+
+ansible 127.0.0.1 -m ping {enter}
+
+ansible [inventoryGroup] -m command -a "systemCommand" 
+
+ansible webserver -m command -a "date"
+ansible webserver -m shell -a "date"
+ansible webserver -m shell -a "ps -e|grep bash" 
+ansible webserver -m command -a "ps -e|grep bash" 
+
+in Linux RHL std -> os command -> yum 
+--------------------
+yum install <package>
+yum install httpd
+
+in debian std --> os command -> apt-get 
+---------------
+apt-get install apache2
+
+in ansible --> module name is yum 
+yum - package installation/update/remove  RHL std 
+apt - package installation/update/remove  debian std
+
+ansible-doc ---> like man command 
+
+ansible-doc <moduleName>
+=============================================================================================
+
+ansible HostGroup Module Arguments to the module
+|
+ansible webservers -m yum -a "name=package state=latest"
+ansible webservers -m apt -a "name=package state=latest"
+
+command -v 
+verbose 
+
+
+ansible webservers -m ping -vvvvv
+
+ansible webserver -m command -a "uptime"
+
+ansible webserver -m command -a "uptime" -vvvv
+
+# using shell module 
+# filter list of .yml files from / directory
+#
+# find / -name "*.yml"|xargs ls -l {} \;
+
+
+ansible webserver -m shell -a "reboot"
+ |
+ansible webserver -m reboot # reboot 
+ansible webserver -m reboot -a reboot_time=3600 
+
+
+
+==========================================================================================================
+ex:
+sample playbook ->p1.yml 
+-  module1:
+     arg1: Value1
+     arg2: Value2
+
+|
+|
+adhoc command line
+|
+ansible webserver -m module1 -a "arg1=Value1 arg2=Value2"
+
+
+- file:
+    path: /tmp/test1.txt
+    state: absent 
+
+ansible webserver -m file -a "path=/tmp/test.1txt state=absent"
+
+====================================================================================================
+
+
+filesystem
+|           |       |        |       |
+/dev/sda1  10000    yes     /D1     120GB
+
+name="/dev/sda1"
+findex=1000
+mount_status=yes
+dir="/D1"
+size='120GB'
+
+user
+|           |        |
+user-A     501      /home/user-A
+
+app
+|          |         |         |
+app-1     5000      enabled    0.01
+name	   port      status
+
+
+"/dev/sda1"
+1000
+yes
+"/D1"
+'120GB'
+
+ ['/dev/sda1',1000,yes,'/D1','120GB'] <===collection - list (or) Array - index based 
+           (or)
+
+ListNae 
+ - '/dev/sda1'
+ - 1000
+ - yes
+ - '/D1'
+ - '120GB'
+
+{"Key": Value } <== hash (or) dict 
+
+{"K1": "/dev/sda1","K2": 1000,"K3": yes, "K4": '120GB'} <== collection - dict (or) hash structure
+
+
+ansible webservers -m yum -a "name=httpd state=installed" 
+		              ---------- ----------------
+				|
+		         yum:
+			      name: httpd
+			      state: installed
+
+playbook - parms - dict format -->{"Key": Value}
+-------------------------------------------------
+	
+ansible -m webserver -m command -a "uptime"
+             |          ===================
+	    Target           |
+                            Task section
+
+hosts: webserver  <== Targetsection
+
+tasks:            <== task section
+ command: uptime
+
+---
+  name: Name of the Playbook
+  hosts: webserver
+  tasks:
+    name: display cpu loadbalance
+    command: uptime
+
+
+ansible -m webserver -m yum -a "name=httpd state=started"
+
+hosts: webserver
+
+tasks:
+- name: install a package
+  yum:
+    name: httpd
+    state: started 
+
+---
+-<s>name:<s> NAME OF THE VALUE
+<><>hosts:<s> NAME OF THE HOST
+<><>tasks:
+    -<>name:<s> NAME OF THE TASK-1
+    <><>module:<s>attribute1=value attribute2=value
+    <><>module:<s>
+    <><><><>attribute1:<>Value
+    <><><><>attribute2:<>Value
+   -<>name:<s> NAME OF THE TASK-2
+    <><>module:<s>attribute1=value attribute2=value
+    <><>module:<s>
+    <><><><>attribute1:<>Value
+    <><><><>attribute2:<>Value
+   
+
+ ['/dev/sda1',1000,yes,'/D1','120GB'] <===collection - list (or) Array - index based 
+           (or)
+
+ListNae 
+ - '/dev/sda1'
+ - 1000
+ - yes
+ - '/D1'
+ - '120GB'
+
+
+servers=[unix,linux,winx,aix,sunos]
+=======
+ |
+label(or) variablename (or) listname (or) arrayname
+
+servers:
+- unix
+- linux
+- winx
+- aix
+- sunos
+
+d={"port": 8080,"service": "httpd","user": root}
+    -----------  ------------------ -----------
+d:
+  port=8080 
+  service=httpd
+
+d:
+- port: 8080
+- service: httpd
+-------------------------------//
+
+playbook - key:Value
+
+- name: NAME OF THE PLAYBOOK
+  
+  tasks:
+  - name: .....
+    module: .....
+
+d={"K1":{"K1":"V1","K2":"V2",{"K3":"V3"}}}
+       | ---------  -------- ===========
+   ----|---------------------------------
+
+d={"K1":[{"K1":"V1","K2":"V2",{"K3":"V3"}}]}
+
+
+
+
+d={"tasks": [{"name": "name of the play"},{"commad": uptime},{"name": installed httpd"}]}
+
+==================================================================================================
